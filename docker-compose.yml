@@ -1,0 +1,20 @@
+services:
+  producer:
+    build: ./producer
+    container_name: producer
+    command: bash -c "cd /app/build && ./producer"
+    ipc: host
+    cap_add: [IPC_OWNER]
+    shm_size: 100mb
+    volumes:
+     - /dev/shm/:/dev/shm/:rw
+  consumer:
+    build: ./consumer
+    container_name: consumer
+    #image: "redis:alpine"
+    command: bash -c "cd /app/build && ./consumer"
+    ipc: host
+    cap_add: [IPC_OWNER]
+    shm_size: 100mb
+    volumes:
+     - /dev/shm/:/dev/shm/:rw
