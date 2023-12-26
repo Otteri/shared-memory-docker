@@ -1,3 +1,5 @@
+// Implement block memory version
+
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -11,33 +13,55 @@
 
 #define SHM_KEY 0x1234
 #define SHM_SIZE 1024  /* make it a 1K shared memory segment */
+struct shmseg {
+   int cnt;
+   int complete;
+   char buf[SHM_SIZE];
+};
 
 int main(int argc, char *argv[])
 {
+    key_t key;
     int shmid;
-    char *data;
+    int mode;
+    struct shmseg *shmp;
+
+
+    /* make the key: */
+    // if ((key = ftok("/dev/shm/hello.txt", 'R')) == -1) /* Here the file must exist */ 
+    // {
+    //     perror("ftok");
+    //     exit(1);
+    // }
+    // std::cout << "key: " << key << std::endl;
 
     /*  create the segment: */
-    if ((shmid = shmget(SHM_KEY, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
+    if ((shmid = shmget(SHM_KEY, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {  // kley, 0644
         perror("shmget");
         exit(1);
     }
 
     /* attach to the segment to get a pointer to it: */
-    if ((data = (char*)shmat(shmid, NULL, 0)) == (void *)-1) {
+    if ((shmp = (shmseg*)shmat(shmid, NULL, 0)) == (void *)-1) {
         perror("shmat");
         exit(1);
     }
 
-    /* read or modify the segment, based on the command line: */
-    for (int i = 0; i < 100; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        //printf("segment contains: \"%s\"\n", data);
-        std::cout << "[Consumer] Segment data:" << data << std::endl;
+    /* Transfer blocks of data from shared memory to stdout*/
+    while (shmp->complete != 1) {
+        printf("segment contains : \n\"%s\"\n", shmp->buf);
+        if (shmp->cnt == -1) {
+            perror("read");
+            return 1;
+        }
+        printf("Reading Process: Shared Memory: Read %d bytes\n", shmp->cnt);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
+    printf("Reading Process: Complete\n");
+
     /* detach from the segment: */
-    if (shmdt(data) == -1) {
+    if (shmdt(shmp) == -1) {
         perror("shmdt");
         exit(1);
     }
